@@ -25,6 +25,8 @@ $tabel.Grupp | Foreach-Object {
 	$groupExists = Get-ResourcePool -Location $kluster -Name $_ -ErrorAction SilentlyContinue
 	if (!$groupExists) {
 		New-ResourcePool -Location $kluster -Name $_
+	} else {
+		Write-Host "$_ juba eksisteerib" -ForegroundColor Red
 	}
 
 }
@@ -37,13 +39,14 @@ $tabel | Foreach-Object {
 	
 	# Samuti asendab k6ik t2pit2hed tavalisteks ladinat2htedeks
 	$nimi = [Text.Encoding]::ASCII.GetString([Text.Encoding]::GetEncoding("Cyrillic").GetBytes($nimi))
-	$grupp = $_.Grupp
 	
 	# Kontrollib, kas persooni Resource Pool eksisteerib, Kui ei, siis teeb uue vastavasse grupi
 	# Resource Pool'i
-	$nameExists = Get-ResourcePool -Location $_.Grupp -Name $grupp -ErrorAction SilentlyContinue
+	$nameExists = Get-ResourcePool -Location $_.Grupp -Name $nimi -ErrorAction SilentlyContinue
 	if (!$nameExists) {
-		New-ResourcePool -Location $grupp -Name $nimi
+		New-ResourcePool -Location $_.Grupp -Name $nimi
+	} else {
+		Write-Host "$nimi juba eksisteerib" -ForegroundColor Red
 	}
 }
 
