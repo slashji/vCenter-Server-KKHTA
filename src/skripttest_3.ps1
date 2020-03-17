@@ -1,13 +1,15 @@
 ﻿<#
 TODO:
 //////////////
-1 (tehtud). Kui nimes on t2pit2hti, v6iks need asendada tavaliste ladinat2htedega
+1. Kui nimes on täpitähti, võiks need asendada tavaliste ladinatäthedega (tehtud)
 
 https://www.lieben.nu/liebensraum/2018/12/removing-special-characters-from-utf8-input-for-use-in-email-addresses-or-login-names/
 
-2. Resource Pool 6iguste jagamine (pooleli)
-3. V2ljundi k2sureal v2hendamine
-4. Dynaamilisus
+2. Resource Pool õiguste jagamine (tehtud)
+
+--- mitte kõige tähtsamad ülesanded ---
+1. V2ljundi k2sureal v2hendamine
+2. Dynaamilisus
 #>
 
 # Yhendab vCenter serveriga k6igepealt
