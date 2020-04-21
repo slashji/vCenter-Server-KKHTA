@@ -10,4 +10,6 @@ kkhta 		- Päris prototüüp (pooleli)
 skripttest_4 	- Resource Pooli õiguste info kättesaamine
 skripttest_5 	- Resource Pooli tegemine, kui juba ei eksisteeri
 skripttest_6 	- Datastore'ide õiguste jagamine
+skripttest_7	- 000_INTERNET pordi kasutusõiguse jagamine seatud grupile
+skripttest_8	- 000_INTERNET pordi kasutusõiguse ning kasutajatele individuaalsete portide tekitamine.
 t2hed		- Täpitähtede asendaja tavaliste ladina tähtedega
