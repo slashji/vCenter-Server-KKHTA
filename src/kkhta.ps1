@@ -1,6 +1,8 @@
-﻿<#
+<#
 TODO:
 //////////////
+1. Kontrollib, kas PowerCLI moodul on olemas või mitte
+2. Eraldi versioon käsurea parameetritega
 #>
 
 $vcenterServer = ""
