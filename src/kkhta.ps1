@@ -1,6 +1,11 @@
-param (
+﻿param (
+	[Parameter(Position=0)]
 	[string]$vCenterServer = "",
+	
+	[Parameter(Position=1)]
 	[string]$CSVFail = "",
+	
+	[Parameter(Position=2)]
 	[string]$DomeeniNimi = ""
 )
 
@@ -30,24 +35,26 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 		} else {
 			Write-Host "$vCenterServer ei ole ühendatud" -BackgroundColor red
 			Write-Host "Ilmnes tõrge: " $Error[0] -BackgroundColor red
+			$vCenterServer = ""
 		}
-	} until (!$vc.IsConnected)
+	} until ($vc.IsConnected)
 
 	$tabel = ""
 	do {
-		if (!$CSVFail) {
+		if ($CSVFail -eq "") {
 			do {
 				$CSVFail = Read-Host -Prompt 'Sisestage CSV fail, kus on olemas nimed, grupid ning VLAN ID-d (faili tee)'
 				
 				# Kui pole midagi sisestatud
 				if (!$CSVFail) {
-					Write-Host "Faili tee / nimi ei tohi olla tühi" -BackgroundColor yellow
+					Write-Host "Faili tee / nimi ei tohi olla tühi" -BackgroundColor red
 				}
 			} until (!$CSVFail -eq "")
 		}
 		
 		# Kui leiab sisestatud faili nime samast kaustast / teest
-		if (Test-Path -Path $CSVFail) {
+		$failOlemas = Test-Path -Path $CSVFail
+		if ($failOlemas) {
 		
 			# Impordib CSV faili, kus on tabel andmetega
 			$tabel = Import-Csv $CSVFail
@@ -62,12 +69,13 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 			} else {
 				Write-Host "Puudub / Puuduvad veerud. Vaadake, kas on tabelis olemas veerud Nimi, Grupp, VLAN (selles järjekorras)" -BackgroundColor red
 				$CSVFail = ""
+				$failOlemas = $false
 			}
 		} else {
 			Write-Host "== Sellist faili nagu $CSVFail ei leitud ==" -BackgroundColor red
 			$CSVFail = ""
 		}
-	} until (-not Test-Path -Path $CSVFail)
+	} until ($failOlemas)
 
 	do {
 		if ($DomeeniNimi -eq "") {
@@ -76,7 +84,7 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 		
 		# Kui domeeninime pole antud
 		if (!$DomeeniNimi) {
-			Write-Host "Domeeni nimi ei tohi olla tühi"
+			Write-Host "Domeeni nimi ei tohi olla tühi" -BackgroundColor red
 		} else {
 			Write-Host "== $DomeeniNimi valitud ==" -ForegroundColor green
 		}
@@ -97,6 +105,8 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 	# Kontrollimaks seda, et skript ei käiks läbi
 	# läbikäidud grupil kõik komponendid uuesti (mõeldud ajavõidu jaoks)
 	$grupidDuplikaat = @()
+	
+	Write-Host "*** Grupid ***" -BackgroundColor gray
 
 	# Käib läbi iga rea Grupp veerus (nt: IS118)
 	$tabel.Grupp | Foreach-Object {
@@ -110,7 +120,9 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 				olemasolevas andmekeskuses (Datacenter)
 			#>
 			
-			Write-Host "**** $_ ****"
+			Write-Host "******************************"
+			Write-Host "* $_"
+			Write-Host "******************************"
 
 			Write-Host "== Ressursipool grupile $_ =="
 			Start-Sleep 1 # ootab 1 sekundi
@@ -151,7 +163,6 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 			
 			$newFolder = Get-View (Get-View -viewtype datacenter).vmfolder
 			if ($newFolder) {
-				Write-Host $newFolder
 
 				# Üritab tekitada kausta
 				try {
@@ -228,6 +239,8 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 		}
 	}
 
+	Write-Host "*** Kasutajad ***" -BackgroundColor gray
+	
 	# Käib iga rea igas veerus läbi
 	$tabel | Foreach-Object {
 
@@ -238,7 +251,9 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 		# Muudab ka kõik täpitähed, spetsiaalsed tähed tavalisteks ladinatähtedeks
 		$nimi = [Text.Encoding]::ASCII.GetString([Text.Encoding]::GetEncoding("Cyrillic").GetBytes($nimi))
 		
-		Write-Host "**** $nimi ****"
+		Write-Host "******************************"
+		Write-Host "* $nimi"
+		Write-Host "******************************"
 		
 		<#
 			RESSURSIPOOLID:
