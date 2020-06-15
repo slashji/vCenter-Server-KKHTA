@@ -97,6 +97,7 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 	# Võtab andmehoidla klustri, mis lõpeb sõnaga "Datastore Cluster"
 	$dsCluster = Get-DatastoreCluster -Location $datacenter
 
+	$esxhosts = Get-VMHost -Location $kluster # hostid
 	$datastores = Get-Datastore | ? {$_.name -imatch 'datastore'} # Otsib välja kõik andmehoidlad, milles sisaldub 'datastore'
 	$isoDs = Get-Datastore -Name ISOD # Andmehoidla 'ISOD'
 	$internetPG = Get-VDPortGroup -Name 000_INTERNET # Jagatud virtuaalportgrupp '000_INTERNET'
@@ -113,6 +114,16 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 		
 		# Kui grupp pole veel läbi käidud
 		if (!$grupidDuplikaat.Contains($_)) {
+			$grupiNimi = $_
+			
+			<# HOSTID #>
+			
+			foreach ($esxhost in $esxhosts) {
+				$hostPerms = Get-VIPermission -Entity ($esxhost) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
+				if (!$hostPerms) {
+					New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity ($esxhost) -Propagate:$false
+				}
+			}
 		
 			<#
 				RESSURSIPOOLID:
@@ -128,17 +139,17 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 			Start-Sleep 1 # ootab 1 sekundi
 			
 			# Kontrollib, kas grupi ressursipool eksisteerib
-			$groupExists = Get-ResourcePool -Location $kluster -Name $_ -ErrorAction SilentlyContinue
+			#$groupExists = Get-ResourcePool -Location $kluster -Name $grupiNimi -ErrorAction SilentlyContinue
 			
 			# Kui pordigruppi ei eksisteeri
 			if (!$groupExists) {
-				New-ResourcePool -Location $kluster -Name $_
+				New-ResourcePool -Location $kluster -Name $grupiNimi -ErrorAction SilentlyContinue
 			} else { Write-Host "Ressursipool $_ on juba olemas" -ForegroundColor yellow } # kui ressursipool juba on olemas
 			
 			# Õiguste kontroll
-			$datacentPerms = Get-VIPermission -Entity ($datacenter) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
-			$klusterPerms = Get-VIPermission -Entity ($kluster) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
-			$gruppPerms = Get-VIPermission -Entity ($groupExists) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
+			$datacentPerms = Get-VIPermission -Entity ($datacenter) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
+			$klusterPerms = Get-VIPermission -Entity ($kluster) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
+			$gruppPerms = Get-VIPermission -Entity (Get-ResourcePool -Location $kluster -Name $_) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
 			
 			# Kui grupil puuduvad õigused, kas andmekeskuses, klustris või enda grupil
 			if ((!$datacentPerms) -or (!$klusterPerms) -or (!$gruppPerms)) {
@@ -146,9 +157,9 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 				# Kui grupp ei ole 'Opetajad'
 				# Määrab neile ainult lugemis-/vaatamisõiguse
 				if ($_ -ne 'Opetajad') {
-					New-VIPermission -Role readonly -Principal $DomeeniNimi\$_ -Entity ($kluster) -Propagate:$false
-					New-VIPermission -Role readonly -Principal $DomeeniNimi\$_ -Entity ($datacenter) -Propagate:$false
-					New-VIPermission -Role readonly -Principal $DomeeniNimi\$_ -Entity ($groupExists) -Propagate:$false
+					New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity ($kluster) -Propagate:$false
+					New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity ($datacenter) -Propagate:$false
+					New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity (Get-ResourcePool -Location $kluster -Name $_) -Propagate:$false
 				}
 			} else { Write-Host "Grupile $_ on juba õigused määratud" -ForegroundColor yellow } # Kui grupil on juba õigused olemas
 			
