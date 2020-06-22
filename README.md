@@ -51,10 +51,10 @@ Koos parameetritega näeb välja selline:
 
 ```ps
 # Koos parameetri nimega (järjekord võib olla ka teine)
-.\KKHTA.ps1 -vCenterServer '<vCenter serveri aadress>' -CSVFail '<CSV failitee>' -DomeeniNimi '<vCenter'iga ühildatud domeeninimi (pre-Windows 2000)>'
+.\KKHTA.ps1 -vCenterServer "vCenter Serveri aadress" -CSVFail "CSV tabelfaili tee" -DomeeniNimi "vCenter'iga ühildatud domeeninimi (pre-Windows 2000)"
 
 # Ilma parameetri nimeta (järjekord peab olema nagu see on: vCenter'i server, CSV fail, domeeni nimi)
-.\KKHTA.ps1 '<vCenter serveri aadress>' '<CSV tabelfaili tee>' '<domeeninimi>'
+.\KKHTA.ps1 "vCenter Serveri aadress" "CSV tabelfaili tee" "vCenter'iga ühildatud domeeninimi (pre-Windows 2000)"
 ```
 
 <a name="parameetrid"></a>
@@ -82,7 +82,6 @@ Skript kasutab järgnevaid parameetrid, mida käsureal saab sisetada
   - Väljastab tõrke, kui midagi pole sisestatud
   - **TÄHELEPANEK:** puudub tõrkeväljastus osas:
     - kas domeen on vCenter Serveriga ühildatud või mitte
-    - kas sisestatud domeeni nimi on õige, mis on ühildatud
 
 Skript kontrollib ka kasutajate ja gruppide olemasolu Active Directory katalooogiteenuses. Väljastab tõrke käsureale, kui kasutajat ja/või grupi ei eksisteeri
 
