@@ -51,10 +51,10 @@ Koos parameetritega näeb välja selline:
 
 ```ps
 # Koos parameetri nimega (järjekord võib olla ka teine)
-.\KKHTA.ps1 -vCenterServer <vCenter serveri aadress> -CSVFail <CSV failitee> -DomeeniNimi <vCenter'iga ühildatud domeeninimi (pre-Windows 2000)>
+.\KKHTA.ps1 -vCenterServer '<vCenter serveri aadress>' -CSVFail '<CSV failitee>' -DomeeniNimi '<vCenter'iga ühildatud domeeninimi (pre-Windows 2000)>'
 
 # Ilma parameetri nimeta (järjekord peab olema nagu see on: vCenter'i server, CSV fail, domeeni nimi)
-.\KKHTA.ps1 <vCenter serveri aadress> <CSV tabelfaili tee> <domeeninimi>
+.\KKHTA.ps1 '<vCenter serveri aadress>' '<CSV tabelfaili tee>' '<domeeninimi>'
 ```
 
 <a name="parameetrid"></a>
