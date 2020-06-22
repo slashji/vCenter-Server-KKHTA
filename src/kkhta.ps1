@@ -116,132 +116,140 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 		if (!$grupidDuplikaat.Contains($_)) {
 			$grupiNimi = $_
 			
-			<# HOSTID #>
-			
-			foreach ($esxhost in $esxhosts) {
-				$hostPerms = Get-VIPermission -Entity ($esxhost) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
-				if (!$hostPerms) {
-					New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity ($esxhost) -Propagate:$false
-				}
-			}
-		
-			<#
-				RESSURSIPOOLID:
-				Tehakse uued ressursipoolid (Resource Pools) klustrisse
-				olemasolevas andmekeskuses (Datacenter)
-			#>
-			
 			Write-Host "******************************"
-			Write-Host "* $_"
+			Write-Host "* $grupiNimi"
 			Write-Host "******************************"
-
-			Write-Host "== Ressursipool grupile $_ =="
-			Start-Sleep 1 # ootab 1 sekundi
 			
-			# Kontrollib, kas grupi ressursipool eksisteerib
-			#$groupExists = Get-ResourcePool -Location $kluster -Name $grupiNimi -ErrorAction SilentlyContinue
+			# Kontrollib, kas AD's grupp on olemas
+			# Väljastab bool väärtuse (tõene või väär)
+			$ADGroupExists = [bool](Get-ADGroup -Filter { Name -eq $grupiNimi })
+			if ($ADGroupExists) {
 			
-			# Kui pordigruppi ei eksisteeri
-			if (!$groupExists) {
-				New-ResourcePool -Location $kluster -Name $grupiNimi -ErrorAction SilentlyContinue
-			} else { Write-Host "Ressursipool $_ on juba olemas" -ForegroundColor yellow } # kui ressursipool juba on olemas
-			
-			# Õiguste kontroll
-			$datacentPerms = Get-VIPermission -Entity ($datacenter) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
-			$klusterPerms = Get-VIPermission -Entity ($kluster) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
-			$gruppPerms = Get-VIPermission -Entity (Get-ResourcePool -Location $kluster -Name $_) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
-			
-			# Kui grupil puuduvad õigused, kas andmekeskuses, klustris või enda grupil
-			if ((!$datacentPerms) -or (!$klusterPerms) -or (!$gruppPerms)) {
+				<# HOSTID #>
 				
-				# Kui grupp ei ole 'Opetajad'
-				# Määrab neile ainult lugemis-/vaatamisõiguse
-				if ($_ -ne 'Opetajad') {
-					New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity ($kluster) -Propagate:$false
-					New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity ($datacenter) -Propagate:$false
-					New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity (Get-ResourcePool -Location $kluster -Name $_) -Propagate:$false
+				foreach ($esxhost in $esxhosts) {
+					$hostPerms = Get-VIPermission -Entity ($esxhost) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
+					if (!$hostPerms) {
+						New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity ($esxhost) -Propagate:$false
+					}
 				}
-			} else { Write-Host "Grupile $_ on juba õigused määratud" -ForegroundColor yellow } # Kui grupil on juba õigused olemas
 			
-			<#
-				KAUSTAD:
-				Luuakse grupile uued virtuaalmasinate ja mallide kaustad
-				(VMs and Templates Folder), kui neid ei ole loodud
-			#>
-			
-			Write-Host "== VMs and Templates kaust grupile $_ =="
-			Start-Sleep 1
-			
-			$newFolder = Get-View (Get-View -viewtype datacenter).vmfolder
-			if ($newFolder) {
+				<#
+					RESSURSIPOOLID:
+					Tehakse uued ressursipoolid (Resource Pools) klustrisse
+					olemasolevas andmekeskuses (Datacenter)
+				#>
 
-				# Üritab tekitada kausta
-				try {
-					$newFolder.CreateFolder("$_")
-					New-VIPermission -Role readonly -Principal $DomeeniNimi\$_ -Entity (Get-Folder -Name $_) -Propagate:$false
-					New-VIPermission -Role Opilased -Principal $DomeeniNimi\Opetajad -Entity (Get-Folder -Name $_)
-				} catch {}
-			}
-			
-			<#
-			See viis ei toimi, tekitab kausta ressursipoolide alla
-			
-			$kaustExists = Get-Folder -Location $datacenter -Name $_ -ErrorAction SilentlyContinue
-			if (!$kaustExists) { New-Folder -Name $_ -Location $datacenter }
-			else { Write-Host "Kaust $_ juba on loodud" }
-			#>
-			
-			Write-Host "== Andmehoidlate kasutusõigus grupile $_ =="
-			Start-Sleep 1
-			
-			<#
-				ANDMEHOIDLAD (ÕIGUSED):
-				Kontrollitakse andmehoidlate kasutusõiguseid.
-				Kui puuduvad, määratakse grupile vastav roll kasutusõiguseks
-			#>
-			
-			# Kui grupil puudub andmehoidla klustril vastavad õigused
-			$dsClusterPerms = Get-VIPermission -Entity ($dsCluster) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
-			if (!$dsClusterPerms) {
-				New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($dsCluster)
-			}
-			
-			<#
-			# Käib läbi iga andmehoidla
-			ForEach ($datastore in $datastores) {
+				Write-Host "== Ressursipool grupile $_ =="
+				Start-Sleep 1 # ootab 1 sekundi
 				
-				# Kui grupil puudub andmehoidlal õigused
-				$datastorePerms = Get-VIPermission -Entity ($datastore) -Principal $DomeeniNimi\$_
-				if (!$datastorePerms) {
-					New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($datastore)
+				# Kontrollib, kas grupi ressursipool eksisteerib
+				#$groupExists = Get-ResourcePool -Location $kluster -Name $grupiNimi -ErrorAction SilentlyContinue
+				
+				# Kui pordigruppi ei eksisteeri
+				if (!$groupExists) {
+					New-ResourcePool -Location $kluster -Name $grupiNimi -ErrorAction SilentlyContinue
+				} else { Write-Host "Ressursipool $_ on juba olemas" -ForegroundColor yellow } # kui ressursipool juba on olemas
+				
+				# Õiguste kontroll
+				$datacentPerms = Get-VIPermission -Entity ($datacenter) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
+				$klusterPerms = Get-VIPermission -Entity ($kluster) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
+				$gruppPerms = Get-VIPermission -Entity (Get-ResourcePool -Location $kluster -Name $_) -Principal $DomeeniNimi\$grupiNimi -ErrorAction SilentlyContinue
+				
+				# Kui grupil puuduvad õigused, kas andmekeskuses, klustris või enda grupil
+				if ((!$datacentPerms) -or (!$klusterPerms) -or (!$gruppPerms)) {
+					
+					# Kui grupp ei ole 'Opetajad'
+					# Määrab neile ainult lugemis-/vaatamisõiguse
+					if ($_ -ne 'Opetajad') {
+						New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity ($kluster) -Propagate:$false
+						New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity ($datacenter) -Propagate:$false
+						New-VIPermission -Role readonly -Principal $DomeeniNimi\$grupiNimi -Entity (Get-ResourcePool -Location $kluster -Name $_) -Propagate:$false
+					}
+				} else { Write-Host "Grupile $_ on juba õigused määratud" -ForegroundColor yellow } # Kui grupil on juba õigused olemas
+				
+				<#
+					KAUSTAD:
+					Luuakse grupile uued virtuaalmasinate ja mallide kaustad
+					(VMs and Templates Folder), kui neid ei ole loodud
+				#>
+				
+				Write-Host "== VMs and Templates kaust grupile $_ =="
+				Start-Sleep 1
+				
+				$newFolder = Get-View (Get-View -viewtype datacenter).vmfolder
+				if ($newFolder) {
+
+					# Üritab tekitada kausta
+					try {
+						$newFolder.CreateFolder("$_")
+						New-VIPermission -Role readonly -Principal $DomeeniNimi\$_ -Entity (Get-Folder -Name $_) -Propagate:$false
+						New-VIPermission -Role Opilased -Principal $DomeeniNimi\Opetajad -Entity (Get-Folder -Name $_)
+					} catch {}
+				}
+				
+				<#
+				See viis ei toimi, tekitab kausta ressursipoolide alla
+				
+				$kaustExists = Get-Folder -Location $datacenter -Name $_ -ErrorAction SilentlyContinue
+				if (!$kaustExists) { New-Folder -Name $_ -Location $datacenter }
+				else { Write-Host "Kaust $_ juba on loodud" }
+				#>
+				
+				Write-Host "== Andmehoidlate kasutusõigus grupile $_ =="
+				Start-Sleep 1
+				
+				<#
+					ANDMEHOIDLAD (ÕIGUSED):
+					Kontrollitakse andmehoidlate kasutusõiguseid.
+					Kui puuduvad, määratakse grupile vastav roll kasutusõiguseks
+				#>
+				
+				# Kui grupil puudub andmehoidla klustril vastavad õigused
+				$dsClusterPerms = Get-VIPermission -Entity ($dsCluster) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
+				if (!$dsClusterPerms) {
+					New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($dsCluster)
+				}
+				
+				<#
+				# Käib läbi iga andmehoidla
+				ForEach ($datastore in $datastores) {
+					
+					# Kui grupil puudub andmehoidlal õigused
+					$datastorePerms = Get-VIPermission -Entity ($datastore) -Principal $DomeeniNimi\$_
+					if (!$datastorePerms) {
+						New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($datastore)
+					} else {
+						Write-Host "Grupile $_ juba määratud andmekogule $datastore"
+					}
+				}
+				#>
+				
+				# ISOD kasutusõiguse jagamine
+				$isoDsPerms = Get-VIPermission -Entity ($isoDs) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
+				if (!$isoDsPerms) {
+					New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($isoDs)
+				}
+				
+				Write-Host "== 000_INTERNET virtuaalpordigrupi kasutusõigus grupile $_ =="
+				Start-Sleep 1
+				
+				<#
+					PORDIGRUPPID:
+					Grupide alal ühise internet jagatud virtuaalpordigrupi kasutusõiguse
+					määramine grupile
+				#>
+				
+				$internetPGPerms = Get-VIPermission -Entity ($internetPG) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
+				
+				# Kui grupil puudub internet pordigrupil õigused
+				if (!$internetPGPerms) {
+					New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($internetPG) -Propagate:$false
 				} else {
-					Write-Host "Grupile $_ juba määratud andmekogule $datastore"
+					Write-Host "Grupile $_ on juba 000_INTERNET õigused määratud" -ForegroundColor yellow
 				}
-			}
-			#>
-			
-			# ISOD kasutusõiguse jagamine
-			$isoDsPerms = Get-VIPermission -Entity ($isoDs) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
-			if (!$isoDsPerms) {
-				New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($isoDs)
-			}
-			
-			Write-Host "== 000_INTERNET virtuaalpordigrupi kasutusõigus grupile $_ =="
-			Start-Sleep 1
-			
-			<#
-				PORDIGRUPPID:
-				Grupide alal ühise internet jagatud virtuaalpordigrupi kasutusõiguse
-				määramine grupile
-			#>
-			
-			$internetPGPerms = Get-VIPermission -Entity ($internetPG) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
-			
-			# Kui grupil puudub internet pordigrupil õigused
-			if (!$internetPGPerms) {
-				New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($internetPG) -Propagate:$false
 			} else {
-				Write-Host "Grupile $_ on juba 000_INTERNET õigused määratud" -ForegroundColor yellow
+				Write-Warning "Grupp $grupiNimi ei eksisteeri Active Directory's"
 			}
 			
 			# Vältimaks seda, et sama grupp uuesti läbi ei käiks
@@ -254,90 +262,108 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 	
 	# Käib iga rea igas veerus läbi
 	$tabel | Foreach-Object {
+	
+		$taisnimi = $_.Nimi
+		$grupinimi = $_.Grupp
 
 		# Kuna nimed on CSV arvatavsti ette söödetud kui "Eesnimi Perenimi" formaadis,
 		# asendab all olev muutuja tühiku punktiga ning teeb suurtähed väikesteks.
-		$nimi = [regex]::Replace($_.Nimi, "\s+", ".").ToLower()
+		$nimi = [regex]::Replace($taisnimi, "\s+", ".").ToLower()
 		
 		# Muudab ka kõik täpitähed, spetsiaalsed tähed tavalisteks ladinatähtedeks
 		$nimi = [Text.Encoding]::ASCII.GetString([Text.Encoding]::GetEncoding("Cyrillic").GetBytes($nimi))
 		
 		Write-Host "******************************"
-		Write-Host "* $nimi"
+		Write-Host "* $taisnimi ($nimi)"
+		Write-Host "* Grupp: $grupinimi"
 		Write-Host "******************************"
 		
-		<#
-			RESSURSIPOOLID:
-			Tehakse uued ressursipoolid (Resource Pools) klustrisse
-			olemasolevas andmekeskuses (Datacenter)
-		#>
+		$ADUserExists = [bool](Get-ADUser -Filter { SamAccountName -eq $nimi }) #-or [bool](Get-ADUser -Filter { Name -eq $taisnimi })
+		$ADGroupExists = [bool](Get-ADGroup -Filter { Name -eq $grupinimi })
+		if ($ADUserExists -and $ADGroupExists) {
 		
-		Write-Host "== Ressursipool kasutajale $nimi =="
-		Start-Sleep 1
-		
-		# Kui kasutaja ressursipool ei ole olemas
-		$nameExists = Get-ResourcePool -Location $_.Grupp -Name $nimi -ErrorAction SilentlyContinue
-		if (!$nameExists) {
-			New-ResourcePool -Location $_.Grupp -Name $nimi
-		} else { Write-Host "Ressursipool $nimi juba eksisteerib" -ForegroundColor yellow }
-		
-		# Peale individuaalsete Resource Pool'ide tegemist, määratakse ära nendele roll Opilased
-		# Kui õigust kasutajale ei eksisteeri, antakse talle roll oma Resource Pool'ile
-		$permsExist = Get-VIPermission -Entity (Get-ResourcePool -Location $_.Grupp -Name $nimi) -Principal $DomeeniNimi\$nimi -ErrorAction SilentlyContinue
-		if (!$permsExist) {
-			New-VIPermission -Role Opilased -Principal $DomeeniNimi\$nimi -Entity (Get-ResourcePool -Location $_.Grupp -Name $nimi)
-		} else { Write-Host "Õigused on juba $nimi ressursipoolile määratud" -ForegroundColor yellow }
-		
-		<#
-			KAUSTAD:
-			Luuakse uued virtuaalmasinate ja mallide kaustad (VMs and Templates Folder),
-			kui neid ei ole loodud
-		#>
-		
-		Write-Host "== VMs and Templates kaust kasutajale $nimi =="
-		Start-Sleep 1
-		
-		# Kontrollitakse kausta olemasolekut
-		$folderExists = Get-Folder -Location $_.Grupp -Name $nimi -ErrorAction SilentlyContinue
-		
-		# Kui kausta ei eksisteeri
-		if (!$folderExists) {
+			<#
+				RESSURSIPOOLID:
+				Tehakse uued ressursipoolid (Resource Pools) klustrisse
+				olemasolevas andmekeskuses (Datacenter)
+			#>
 			
-			# Läbi vaate saamisega ning filtreerimisega saab vCenter serverisse luua
-			# virtuaalmasinate ja mallide kaustasid. Tavalise
-			# New-Folder käsuga loob kausta hoopis ressursipoolide
-			# sektsiooni.
-			try {
-				(Get-View -viewtype folder -filter @{"name"=$_.Grupp}).CreateFolder("$nimi")
-			} catch {}
+			Write-Host "== Ressursipool kasutajale $nimi =="
+			Start-Sleep 1
 			
-		} else { Write-Host "Kaust $nimi juba olemas" -ForegroundColor yellow } # kui kaust on juba olemas
+			# Kui kasutaja ressursipool ei ole olemas
+			$nameExists = Get-ResourcePool -Location $_.Grupp -Name $nimi -ErrorAction SilentlyContinue
 		
-		# Kausta õigused
-		$folderPerms = Get-VIPermission -Entity (Get-Folder -Location $_.Grupp -Name $nimi) -Principal $DomeeniNimi\$nimi -ErrorAction SilentlyContinue
-		if (!$folderPerms) {
-			New-VIPermission -Role Opilased -Principal $DomeeniNimi\$nimi -Entity (Get-Folder -Location $_.Grupp -Name $nimi)
-		}
-		
-		<#
-			PORDIGRUPID:
-			Jagatud virtuaalpordigrupi (Virtual Port Groups) tekitamine igale kasutajale
-			oma VLAN ID-ga
-		#>
-		
-		Write-Host "== Virtuaalpordigrupp kasutajale $nimi =="
-		Start-Sleep 1
-		
-		$portGroupExists = Get-VirtualPortGroup -Name $nimi -ErrorAction SilentlyContinue
-		
-		# Kui pordigruppi ei eksisteeri
-		if (!$portGroupExists) {
+			if (!$nameExists) {
+				New-ResourcePool -Location $_.Grupp -Name $nimi
+			} else { Write-Host "Ressursipool $nimi juba eksisteerib" -ForegroundColor yellow }
 			
-			# Tekitab uue pordigrupi, ning annab Opilased rolli kasutajale
-			New-VDPortGroup -VDSwitch $vdswitch -Name $nimi -NumPorts 8 -VLanId $_.VLAN
-			Get-VDPortGroup -Name $nimi | New-VIPermission -Role Opilased -Principal $DomeeniNimi\$nimi -Propagate:$false
+			# Peale individuaalsete Resource Pool'ide tegemist, määratakse ära nendele roll Opilased
+			# Kui õigust kasutajale ei eksisteeri, antakse talle roll oma Resource Pool'ile
+			$permsExist = Get-VIPermission -Entity (Get-ResourcePool -Location $_.Grupp -Name $nimi) -Principal $DomeeniNimi\$nimi -ErrorAction SilentlyContinue
+			
+			if (!$permsExist) {
+				New-VIPermission -Role Opilased -Principal $DomeeniNimi\$nimi -Entity (Get-ResourcePool -Location $_.Grupp -Name $nimi)
+			} else { Write-Host "Õigused on juba $nimi ressursipoolile määratud" -ForegroundColor yellow }
+			
+			<#
+				KAUSTAD:
+				Luuakse uued virtuaalmasinate ja mallide kaustad (VMs and Templates Folder),
+				kui neid ei ole loodud
+			#>
+			
+			Write-Host "== VMs and Templates kaust kasutajale $nimi =="
+			Start-Sleep 1
+			
+			# Kontrollitakse kausta olemasolekut
+			$folderExists = Get-Folder -Location $_.Grupp -Name $nimi -ErrorAction SilentlyContinue
+			
+			# Kui kausta ei eksisteeri
+			if (!$folderExists) {
+				
+				# Läbi vaate saamisega ning filtreerimisega saab vCenter serverisse luua
+				# virtuaalmasinate ja mallide kaustasid. Tavalise
+				# New-Folder käsuga loob kausta hoopis ressursipoolide
+				# sektsiooni.
+				try {
+					(Get-View -viewtype folder -filter @{"name"=$_.Grupp}).CreateFolder("$nimi")
+				} catch {
+					Write-Error "Ilmnes tõrge:" $_
+					Continue
+				}
+				
+			} else { Write-Host "Kaust $nimi juba olemas" -ForegroundColor yellow } # kui kaust on juba olemas
+			
+			# Kausta õigused
+			$folderPerms = Get-VIPermission -Entity (Get-Folder -Location $_.Grupp -Name $nimi) -Principal $DomeeniNimi\$nimi -ErrorAction SilentlyContinue
+			if (!$folderPerms) {
+				New-VIPermission -Role Opilased -Principal $DomeeniNimi\$nimi -Entity (Get-Folder -Location $_.Grupp -Name $nimi)
+			}
+			
+			<#
+				PORDIGRUPID:
+				Jagatud virtuaalpordigrupi (Virtual Port Groups) tekitamine igale kasutajale
+				oma VLAN ID-ga
+			#>
+			
+			Write-Host "== Virtuaalpordigrupp kasutajale $nimi =="
+			Start-Sleep 1
+			
+			$portGroupExists = Get-VirtualPortGroup -Name $nimi -ErrorAction SilentlyContinue
+			
+			# Kui pordigruppi ei eksisteeri
+			if (!$portGroupExists) {
+				
+				# Tekitab uue pordigrupi, ning annab Opilased rolli kasutajale
+				New-VDPortGroup -VDSwitch $vdswitch -Name $nimi -NumPorts 8 -VLanId $_.VLAN
+				Get-VDPortGroup -Name $nimi | New-VIPermission -Role Opilased -Principal $DomeeniNimi\$nimi -Propagate:$false
+			} else {
+				Write-Host "Pordigrupp $nimi on juba olemas" -ForegroundColor yellow
+			}
 		} else {
-			Write-Host "Pordigrupp $nimi on juba olemas" -ForegroundColor yellow
+			Write-Warning "Kasutaja $taisnimi ($nimi) ja/või grupp $grupinimi ei eksisteeri Active Directory's"
+			Write-Host "Kasutaja $nimi olemasolu:" $ADUserExists -BackgroundColor black
+			Write-Host "Grupp $grupinimi olemasolu:" $ADGroupExists -BackgroundColor black
 		}
 	}
 
@@ -346,7 +372,6 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 
 	Disconnect-VIServer -Server $vCenterServer -Confirm:$false
 	Read-Host -Prompt "Vajutage Enter klahvi, et sulgeda..."
-	
 
 } else {
 

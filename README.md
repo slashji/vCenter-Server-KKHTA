@@ -3,7 +3,7 @@ vCenter Server kasutajakontode haldustegevuste automatiseerimine
  
 Lihtsustab kasutajakontode haldustegevuses ressurssipuulide (Resource Pools), virtuaalmasinate ja malli kaustade (VMs and Templates Folders), jagatud kommutaatorisse virtuaalpordigruppide (Virtual Port Groups) tegemises, õiguste jagamises ressursipuulidele, kaustadele, ühisele interneti virtuaalpordigrupile ning saadalolevatele andmehoidlatele.
  
-See skript on eelkõige tehtud Tartu Kutsehariduskeskuse VMware vCenter süsteemi jaoks.
+See skript on tehtud ja kujundatud vastavalt Tartu Kutsehariduskeskuse VMware vCenter süsteemi vajadustele. Muutujad ei pruugi olla samad, kui kasutusele võtta teises süsteemis
 
 ## Sisukord
 * [Paigaldus](#paigaldus)
@@ -22,7 +22,7 @@ Haldustegevuse automeerimiseks on vaja:
 
 Skript ise automaatselt installeerib PowerCLI mooduli, kui süsteemis veel ei ole paigaldatud. Kuid saab ka seda ise paigaldada läbi PowerShell käsu.
 
-```ps1
+```ps
 # Installi VMware.PowerCLI
 Install-Module -Name VMware.PowerCLI
 
@@ -42,19 +42,19 @@ Skripti on võimalik avada paaril viisil:
 #### Käsureal
 Skripti saab avada koos, osaliselt ja ilma ühegi parameetrita. Kui on osaliselt või ilma, küsib skript automaatselt sisestamata andmeid, et käivitada automatsioon. Ilma parameetriteta on käsureal skripti käivitamine selline:
 
-```ps1
+```ps
 # Skript peab olema samas kaustas, kus on avatud PowerShell'i aken.
 .\KKHTA.ps1
 ```
 
 Koos parameetritega näeb välja selline:
 
-```ps1
+```ps
 # Koos parameetri nimega (järjekord võib olla ka teine)
-.\KKHTA.ps1 -vCenterServer vcenter.khk.sise -CSVFail testid\inimesed.csv -DomeeniNimi KHK0
+.\KKHTA.ps1 -vCenterServer <vCenter serveri aadress> -CSVFail <CSV failitee> -DomeeniNimi <vCenter'iga ühildatud domeeninimi (pre-Windows 2000)>
 
 # Ilma parameetri nimeta (järjekord peab olema nagu see on: vCenter'i server, CSV fail, domeeni nimi)
-.\KKHTA.ps1 vcenter.khk.sise testid\inimesed.csv KHK0
+.\KKHTA.ps1 <vCenter serveri aadress> <CSV tabelfaili tee> <domeeninimi>
 ```
 
 <a name="parameetrid"></a>
@@ -84,22 +84,26 @@ Skript kasutab järgnevaid parameetrid, mida käsureal saab sisetada
     - kas domeen on vCenter Serveriga ühildatud või mitte
     - kas sisestatud domeeni nimi on õige, mis on ühildatud
 
+Skript kontrollib ka kasutajate ja gruppide olemasolu Active Directory katalooogiteenuses. Väljastab tõrke käsureale, kui kasutajat ja/või grupi ei eksisteeri
+
 <a name="muutujad"></a>
 ### Skripti-sisesed muutujad
 Skriptis on ka muutujaid, mida kasutaja saab ise muuta avades skript tekstiredaktoriga nagu Notepad, Notepad++, Visual Studio Code jne.
 
-```ps1
+```ps
 ...
 # Võtab klustri ja andmekeskuse, mis lõpeb sõnaga "Cluster", "Datacenter"
 $kluster = Get-Cluster -Name "*Cluster"
 $datacenter = Get-Datacenter -Name "*Datacenter"
 
-# Võtab andmehoidla klustri, andmekeskusest
+# Võtab andmehoidla klustri, mis lõpeb sõnaga "Datastore Cluster"
 $dsCluster = Get-DatastoreCluster -Location $datacenter
 
+$esxhosts = Get-VMHost -Location $kluster # hostid
 $datastores = Get-Datastore | ? {$_.name -imatch 'datastore'} # Otsib välja kõik andmehoidlad, milles sisaldub 'datastore'
 $isoDs = Get-Datastore -Name ISOD # Andmehoidla 'ISOD'
 $internetPG = Get-VDPortGroup -Name 000_INTERNET # Jagatud virtuaalportgrupp '000_INTERNET'
+$vdswitch = $datacenter | Get-VDSwitch # Võtab andmekeskusest jagatud virtuaalkommutaatori
 ...
 ```
 
