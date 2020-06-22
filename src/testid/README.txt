@@ -1,6 +1,6 @@
 VMware vCenter Server kasutajakontode haldustegevuste automatiseerimine
 ================================================================================================
-Enamus skriptid siin on PowerShell'is kirjutatud
+Kõik skriptid siin on PowerShell'is kirjutatud
 ================================================================================================
 skripttest_1 	- Clusterisse Resource Pooli loomine
 skripttest_2 	- Esimene versioon eraldi gruppide ja isikute Resource Poolide tegemine (ilma õigusteta)
@@ -14,4 +14,5 @@ skripttest_5 	- Resource Pooli tegemine, kui juba ei eksisteeri
 skripttest_6 	- Datastore'ide õiguste jagamine
 skripttest_7	- 000_INTERNET pordi kasutusõiguse jagamine seatud grupile
 skripttest_8	- 000_INTERNET pordi kasutusõiguse ning kasutajatele individuaalsete portide tekitamine.
-t2hed		- Täpitähtede asendaja tavaliste ladina tähtedega
+skripttest_9	- Kontrollib inimesed.csv tabelfailis, millised kasutajad ja grupid ei eksisteeri Active Directory's
+t2hed			- Täpitähtede asendaja tavaliste ladina tähtedega
