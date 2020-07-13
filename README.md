@@ -103,6 +103,7 @@ $datastores = Get-Datastore | ? {$_.name -imatch 'datastore'} # Otsib välja kõ
 $isoDs = Get-Datastore -Name ISOD # Andmehoidla 'ISOD'
 $internetPG = Get-VDPortGroup -Name 000_INTERNET # Jagatud virtuaalportgrupp '000_INTERNET'
 $vdswitch = $datacenter | Get-VDSwitch # Võtab andmekeskusest jagatud virtuaalkommutaatori
+$kasutajaRoll = 'Opilased'
 ...
 ```
 

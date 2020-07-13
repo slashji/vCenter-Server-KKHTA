@@ -102,6 +102,7 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 	$isoDs = Get-Datastore -Name ISOD # Andmehoidla 'ISOD'
 	$internetPG = Get-VDPortGroup -Name 000_INTERNET # Jagatud virtuaalportgrupp '000_INTERNET'
 	$vdswitch = $datacenter | Get-VDSwitch # Võtab andmekeskusest jagatud virtuaalkommutaatori
+	$kasutajaRoll = 'Opilased'
 
 	# Kontrollimaks seda, et skript ei käiks läbi
 	# läbikäidud grupil kõik komponendid uuesti (mõeldud ajavõidu jaoks)
@@ -184,7 +185,7 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 					try {
 						$newFolder.CreateFolder("$_")
 						New-VIPermission -Role readonly -Principal $DomeeniNimi\$_ -Entity (Get-Folder -Name $_) -Propagate:$false
-						New-VIPermission -Role Opilased -Principal $DomeeniNimi\Opetajad -Entity (Get-Folder -Name $_)
+						New-VIPermission -Role $kasutajaRoll -Principal $DomeeniNimi\Opetajad -Entity (Get-Folder -Name $_)
 					} catch {}
 				}
 				
@@ -208,7 +209,7 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 				# Kui grupil puudub andmehoidla klustril vastavad õigused
 				$dsClusterPerms = Get-VIPermission -Entity ($dsCluster) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
 				if (!$dsClusterPerms) {
-					New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($dsCluster)
+					New-VIPermission -Role $kasutajaRoll -Principal $DomeeniNimi\$_ -Entity ($dsCluster)
 				}
 				
 				<#
@@ -218,7 +219,7 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 					# Kui grupil puudub andmehoidlal õigused
 					$datastorePerms = Get-VIPermission -Entity ($datastore) -Principal $DomeeniNimi\$_
 					if (!$datastorePerms) {
-						New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($datastore)
+						New-VIPermission -Role $kasutajaRoll -Principal $DomeeniNimi\$_ -Entity ($datastore)
 					} else {
 						Write-Host "Grupile $_ juba määratud andmekogule $datastore"
 					}
@@ -228,7 +229,7 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 				# ISOD kasutusõiguse jagamine
 				$isoDsPerms = Get-VIPermission -Entity ($isoDs) -Principal $DomeeniNimi\$_ -ErrorAction SilentlyContinue
 				if (!$isoDsPerms) {
-					New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($isoDs)
+					New-VIPermission -Role $kasutajaRoll -Principal $DomeeniNimi\$_ -Entity ($isoDs)
 				}
 				
 				Write-Host "== 000_INTERNET virtuaalpordigrupi kasutusõigus grupile $_ =="
@@ -244,7 +245,7 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 				
 				# Kui grupil puudub internet pordigrupil õigused
 				if (!$internetPGPerms) {
-					New-VIPermission -Role Opilased -Principal $DomeeniNimi\$_ -Entity ($internetPG) -Propagate:$false
+					New-VIPermission -Role $kasutajaRoll -Principal $DomeeniNimi\$_ -Entity ($internetPG) -Propagate:$false
 				} else {
 					Write-Host "Grupile $_ on juba 000_INTERNET õigused määratud" -ForegroundColor yellow
 				}
@@ -298,12 +299,12 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 				New-ResourcePool -Location $_.Grupp -Name $nimi
 			} else { Write-Host "Ressursipool $nimi juba eksisteerib" -ForegroundColor yellow }
 			
-			# Peale individuaalsete Resource Pool'ide tegemist, määratakse ära nendele roll Opilased
+			# Peale individuaalsete Resource Pool'ide tegemist, määratakse ära nendele roll $kasutajaRoll
 			# Kui õigust kasutajale ei eksisteeri, antakse talle roll oma Resource Pool'ile
 			$permsExist = Get-VIPermission -Entity (Get-ResourcePool -Location $_.Grupp -Name $nimi) -Principal $DomeeniNimi\$nimi -ErrorAction SilentlyContinue
 			
 			if (!$permsExist) {
-				New-VIPermission -Role Opilased -Principal $DomeeniNimi\$nimi -Entity (Get-ResourcePool -Location $_.Grupp -Name $nimi)
+				New-VIPermission -Role $kasutajaRoll -Principal $DomeeniNimi\$nimi -Entity (Get-ResourcePool -Location $_.Grupp -Name $nimi)
 			} else { Write-Host "Õigused on juba $nimi ressursipoolile määratud" -ForegroundColor yellow }
 			
 			<#
@@ -337,7 +338,7 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 			# Kausta õigused
 			$folderPerms = Get-VIPermission -Entity (Get-Folder -Location $_.Grupp -Name $nimi) -Principal $DomeeniNimi\$nimi -ErrorAction SilentlyContinue
 			if (!$folderPerms) {
-				New-VIPermission -Role Opilased -Principal $DomeeniNimi\$nimi -Entity (Get-Folder -Location $_.Grupp -Name $nimi)
+				New-VIPermission -Role $kasutajaRoll -Principal $DomeeniNimi\$nimi -Entity (Get-Folder -Location $_.Grupp -Name $nimi)
 			}
 			
 			<#
@@ -354,9 +355,9 @@ if (Get-Module -ListAvailable -Name VMware.PowerCLI) {
 			# Kui pordigruppi ei eksisteeri
 			if (!$portGroupExists) {
 				
-				# Tekitab uue pordigrupi, ning annab Opilased rolli kasutajale
+				# Tekitab uue pordigrupi, ning annab $kasutajaRoll rolli kasutajale
 				New-VDPortGroup -VDSwitch $vdswitch -Name $nimi -NumPorts 8 -VLanId $_.VLAN
-				Get-VDPortGroup -Name $nimi | New-VIPermission -Role Opilased -Principal $DomeeniNimi\$nimi -Propagate:$false
+				Get-VDPortGroup -Name $nimi | New-VIPermission -Role $kasutajaRoll -Principal $DomeeniNimi\$nimi -Propagate:$false
 			} else {
 				Write-Host "Pordigrupp $nimi on juba olemas" -ForegroundColor yellow
 			}
